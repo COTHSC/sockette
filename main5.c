@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <poll.h>
+
 
 #define PORT 8080
 int main(int argc, char const *argv[])
@@ -12,7 +14,18 @@ int main(int argc, char const *argv[])
     struct sockaddr_in address;
     int addrlen = sizeof(address);
     
-    char *hello = "Webserv, SO BAD, crypto Caffe, So good.";
+    char *hello = "HTTP/1.1 200 OK \nDate: Mon, 27 Jul 2009 12:28:53 GMT \nServer: Webserv B**** (He uses arcch btw.) \nLast-Modified: Wed, 22 Jul 2009 19:15:56 GMT \nContent-Length: 230 \nContent-Type: text/html; charset=iso-8859-1 \nConnection: Keep-Alive \n\n<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\
+<html>\
+<head>\
+   <title>400 Bad Request</title>\
+</head>\
+<body>\
+   <h1>Bad Request</h1>\
+   <p>Your browser sent a request that this server could not understand.</p>\
+   <p>The request line contained invalid characters following the protocol string.</p>\
+</body>\
+</html>"
+;
     
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -39,21 +52,28 @@ int main(int argc, char const *argv[])
         perror("In listen");
         exit(EXIT_FAILURE);
     }
+    new_socket = 0;
+    struct pollfd pfds;
+	pfds.events = POLLIN;
     while(1)
     {
         printf("\n+++++++ Waiting for new connection ++++++++\n\n");
-        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+         if (!new_socket)
         {
-            perror("In accept");
-            exit(EXIT_FAILURE);
-        }
-        
+
+            if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
+            {
+                perror("In accept");
+                exit(EXIT_FAILURE);
+            }
+            pfds.fd = new_socket;
+         }
+
+        pfds.events = 0;
+        pfds.events |= POLLIN;
         char buffer[30000] = {0};
-        valread = read( new_socket , buffer, 30000);
-        printf("%s\n",buffer );
-        write(new_socket , hello , strlen(hello));
-        // printf("------------------Hello message sent-------------------\n");
-        close(new_socket);
+
+ 
     }
     return 0;
 }
